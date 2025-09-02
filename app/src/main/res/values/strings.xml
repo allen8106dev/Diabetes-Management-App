@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">GlucoTrack</string>
+    <string name="app_title">🩸 Diabetes Management App</string>
+    <string name="status_ready">Ready to track glucose levels</string>
+    <string name="btn_add_reading">➕ Add Glucose Reading</string>
+    <string name="no_readings_yet">No readings yet</string>
+</resources>

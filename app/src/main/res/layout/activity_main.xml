@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mainScrollView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- App Title - Reduced size and margin -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/app_title"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp"
+            android:textColor="@android:color/holo_blue_dark" />
+
+        <!-- Status Text - Reduced margin and padding -->
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Selected: Today | Total Readings: 0"
+            android:textSize="12sp"
+            android:textColor="@android:color/black"
+            android:gravity="center"
+            android:layout_marginBottom="8dp"
+            android:background="#F5F5F5"
+            android:padding="6dp" />
+
+        <!-- Horizontal Date Picker Container -->
+        <LinearLayout
+            android:id="@+id/horizontalDatePickerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp"
+            android:background="#F0F0F0">
+
+            <!-- Month/Year Header - Reduced margins -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp">
+
+                <Button
+                    android:id="@+id/prevMonthButtonCalendar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="❮"
+                    android:textSize="16sp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="10dp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/currentMonthTextCalendar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="January"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@android:color/black" />
+
+                    <TextView
+                        android:id="@+id/currentYearTextCalendar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="2025"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@android:color/black"
+                        android:layout_marginStart="8dp" />
+
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/nextMonthButtonCalendar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="❯"
+                    android:textSize="16sp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="10dp" />
+
+            </LinearLayout>
+
+            <!-- Horizontal Scrollable Dates - Reduced margin -->
+            <HorizontalScrollView
+                android:id="@+id/horizontalDateScroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:layout_marginBottom="10dp">
+
+                <LinearLayout
+                    android:id="@+id/horizontalDateContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="6dp" />
+
+            </HorizontalScrollView>
+
+            <!-- Inline Glucose Entry Form (No nested ScrollView) -->
+            <LinearLayout
+                android:id="@+id/inlineGlucoseForm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#FFFFFF"
+                android:padding="12dp"
+                android:layout_marginTop="8dp">
+
+                <!-- Selected Date Header - Reduced text size and padding -->
+                <TextView
+                    android:id="@+id/selectedDateHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Readings for Today"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/black"
+                    android:gravity="center"
+                    android:layout_marginBottom="10dp"
+                    android:background="#E8F5E8"
+                    android:padding="6dp" />
+
+                <!-- Clean Time Slots Format - Reduced margins -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="10dp">
+
+                    <!-- Fasting: ___ mg/dL - Compact version -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Fasting:"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/fastingInput"
+                            android:layout_width="70dp"
+                            android:layout_height="36dp"
+                            android:inputType="numberDecimal"
+                            android:hint="___"
+                            android:textSize="14sp"
+                            android:gravity="center"
+                            android:background="@android:drawable/edit_text" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" mg/dL"
+                            android:textSize="14sp"
+                            android:layout_marginStart="6dp" />
+
+                    </LinearLayout>
+
+                    <!-- Morning: ___ mg/dL -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Morning:"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/morningInput"
+                            android:layout_width="70dp"
+                            android:layout_height="36dp"
+                            android:inputType="numberDecimal"
+                            android:hint="___"
+                            android:textSize="14sp"
+                            android:gravity="center"
+                            android:background="@android:drawable/edit_text" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" mg/dL"
+                            android:textSize="14sp"
+                            android:layout_marginStart="6dp" />
+
+                    </LinearLayout>
+
+                    <!-- Afternoon: ___ mg/dL -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Afternoon:"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/afternoonInput"
+                            android:layout_width="70dp"
+                            android:layout_height="36dp"
+                            android:inputType="numberDecimal"
+                            android:hint="___"
+                            android:textSize="14sp"
+                            android:gravity="center"
+                            android:background="@android:drawable/edit_text" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" mg/dL"
+                            android:textSize="14sp"
+                            android:layout_marginStart="6dp" />
+
+                    </LinearLayout>
+
+                    <!-- Evening: ___ mg/dL -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Evening:"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/eveningInput"
+                            android:layout_width="70dp"
+                            android:layout_height="36dp"
+                            android:inputType="numberDecimal"
+                            android:hint="___"
+                            android:textSize="14sp"
+                            android:gravity="center"
+                            android:background="@android:drawable/edit_text" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" mg/dL"
+                            android:textSize="14sp"
+                            android:layout_marginStart="6dp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Action Buttons - Reduced height -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/clearFormButton"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="Clear"
+                        android:textSize="14sp"
+                        android:background="@android:color/darker_gray"
+                        android:textColor="@android:color/white"
+                        android:layout_marginEnd="6dp" />
+
+                    <Button
+                        android:id="@+id/saveFormButton"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="Save"
+                        android:textSize="14sp"
+                        android:background="@android:color/holo_green_dark"
+                        android:textColor="@android:color/white"
+                        android:layout_marginStart="6dp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Monthly View Toggle Button - MOVED TO BOTTOM -->
+        <Button
+            android:id="@+id/viewMonthlyHistoryButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📅 Monthly View"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"
+            android:background="@android:color/holo_green_dark"
+            android:textColor="@android:color/white" />
+
+        <!-- Monthly History View Container (HIDDEN BY DEFAULT) -->
+        <LinearLayout
+            android:id="@+id/monthlyHistoryContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Month Navigation Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp"
+                android:background="@android:color/background_dark">
+
+                <!-- Year Selection Section -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:layout_marginEnd="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Year"
+                        android:textColor="@android:color/white"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp" />
+
+                    <Spinner
+                        android:id="@+id/yearSpinner"
+                        android:layout_width="80dp"
+                        android:layout_height="40dp"
+                        android:background="@android:color/white"
+                        android:padding="8dp" />
+
+                </LinearLayout>
+
+                <!-- Previous Month Button -->
+                <Button
+                    android:id="@+id/prevMonthButton"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:text="◀"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="12dp"
+                    android:background="@android:color/holo_blue_dark"
+                    android:textColor="@android:color/white" />
+
+                <!-- Month and Year Display -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/currentMonthText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="January"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:textColor="@android:color/white" />
+
+                    <TextView
+                        android:id="@+id/currentYearText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="2025"
+                        android:textSize="16sp"
+                        android:gravity="center"
+                        android:textColor="@android:color/white"
+                        android:layout_marginTop="2dp" />
+
+                </LinearLayout>
+
+                <!-- Next Month Button -->
+                <Button
+                    android:id="@+id/nextMonthButton"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:text="▶"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginStart="12dp"
+                    android:background="@android:color/holo_blue_dark"
+                    android:textColor="@android:color/white" />
+
+            </LinearLayout>
+
+            <!-- Monthly Table Header - Full Screen Width -->
+            <LinearLayout
+                android:id="@+id/monthlyTableHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@android:color/darker_gray">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1.5"
+                    android:layout_height="wrap_content"
+                    android:text="Date"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:padding="12dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="2"
+                    android:layout_height="wrap_content"
+                    android:text="F"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:padding="12dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="2"
+                    android:layout_height="wrap_content"
+                    android:text="PP1"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:padding="12dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="2"
+                    android:layout_height="wrap_content"
+                    android:text="PP2"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:padding="12dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="2"
+                    android:layout_height="wrap_content"
+                    android:text="PP3"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:padding="12dp" />
+
+            </LinearLayout>
+
+            <!-- ✅ NEW: RecyclerView replaces the old monthlyTableContainer -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/monthlyRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="vertical"
+                android:nestedScrollingEnabled="true" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>
