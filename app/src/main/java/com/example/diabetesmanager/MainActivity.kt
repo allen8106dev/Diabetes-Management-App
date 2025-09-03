@@ -26,6 +26,12 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.content.Intent
+import android.net.Uri
+import android.provider.DocumentsContract
+import androidx.activity.result.contract.ActivityResultContracts
+import java.io.*
+
 data class MonthlyTableRow(
     val day: Int,
     val date: String,
@@ -175,10 +181,248 @@ class MainActivity : AppCompatActivity() {
     private var currentDisplayYear = 2025
     private var currentDisplayMonth = Calendar.getInstance().get(Calendar.MONTH)
 
+    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        uri?.let { exportToCSV(it) }
+    }
+
+    private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { importFromCSV(it) }
+    }
+
     private val months = arrayOf(
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     )
+
+    // CSV Export functionality
+    private fun showExportDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("📤 Export Glucose Data")
+            .setMessage("Export all your glucose readings to a CSV file that you can share with doctors or use as backup.")
+            .setPositiveButton("Export") { _, _ ->
+                val fileName = "glucose_readings_${SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())}.csv"
+                exportLauncher.launch(fileName)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun exportToCSV(uri: Uri) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    val writer = OutputStreamWriter(outputStream)
+
+                    // Write CSV header
+                    writer.write("Date,Time Slot,Glucose Level (mg/dL),Timestamp,Day of Week\n")
+
+                    // Sort readings by date and timestamp for logical order
+                    val sortedReadings = readings.sortedWith(
+                        compareBy<GlucoseReading> { it.date }.thenBy { it.timestamp }
+                    )
+
+                    // Write data rows
+                    sortedReadings.forEach { reading ->
+                        val dayOfWeek = getDayOfWeek(reading.date)
+                        val displayDate = dbDateToDisplayDate(reading.date)
+
+                        writer.write("${displayDate},${reading.timeSlot},${reading.glucoseLevel.toInt()},${reading.timestamp},${dayOfWeek}\n")
+                    }
+
+                    writer.flush()
+                    writer.close()
+
+                    // Calculate statistics for export summary
+                    val totalReadings = sortedReadings.size
+                    val avgGlucose = if (totalReadings > 0) {
+                        sortedReadings.map { it.glucoseLevel }.average().toFloat()
+                    } else 0f
+
+                    withContext(Dispatchers.Main) {
+                        showExportSuccessDialog(totalReadings, avgGlucose)
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun showExportSuccessDialog(totalReadings: Int, avgGlucose: Float) {
+        val message = """
+        ✅ Export Successful!
+        
+        📊 Export Summary:
+        • Total readings: $totalReadings
+        • Average glucose: ${avgGlucose.toInt()} mg/dL
+        • Date range: ${getDateRange()}
+        
+        💡 Your CSV file contains:
+        • Date and time information
+        • All glucose readings with time slots
+        • Day of week for pattern analysis
+        • Compatible with Excel and Google Sheets
+        
+        Share this file with your doctor or keep as backup!
+    """.trimIndent()
+
+        AlertDialog.Builder(this)
+            .setTitle("📈 Data Exported")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    // CSV Import functionality
+    private fun showImportDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("📥 Import Glucose Data")
+            .setMessage("""
+            Import glucose readings from a CSV file.
+            
+            ⚠️ Important:
+            • This will ADD to your existing data (no duplicates)
+            • CSV format: Date,Time Slot,Glucose Level,Timestamp,Day
+            • Date format: DD-MM-YYYY
+            • Time slots: Fasting, Morning, Afternoon, Evening
+            
+            Continue with import?
+        """.trimIndent())
+            .setPositiveButton("Select File") { _, _ ->
+                importLauncher.launch(arrayOf("text/csv", "text/comma-separated-values"))
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun importFromCSV(uri: Uri) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val reader = BufferedReader(InputStreamReader(inputStream))
+                    val lines = reader.readLines()
+
+                    if (lines.isEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity, "CSV file is empty", Toast.LENGTH_SHORT).show()
+                        }
+                        return@use
+                    }
+
+                    // Skip header row if it exists
+                    val dataLines = if (lines[0].contains("Date") && lines[0].contains("Glucose")) {
+                        lines.drop(1)
+                    } else {
+                        lines
+                    }
+
+                    var importedCount = 0
+                    var duplicateCount = 0
+                    var errorCount = 0
+
+                    dataLines.forEach { line ->
+                        try {
+                            val parts = line.split(",")
+                            if (parts.size >= 3) {
+                                val date = parts[0].trim()
+                                val timeSlot = parts[1].trim()
+                                val glucoseLevel = parts[2].trim().toFloat()
+
+                                // Validate data
+                                if (isValidTimeSlot(timeSlot) && glucoseLevel in 20f..600f) {
+                                    val dbDate = displayDateToDbDate(date)
+
+                                    // Check for duplicates
+                                    val exists = readings.any {
+                                        it.date == dbDate && it.timeSlot == timeSlot
+                                    }
+
+                                    if (!exists) {
+                                        val reading = GlucoseReading(
+                                            date = dbDate,
+                                            timeSlot = timeSlot,
+                                            glucoseLevel = glucoseLevel,
+                                            timestamp = System.currentTimeMillis()
+                                        )
+
+                                        val newId = dao.insertReading(reading.toEntity())
+                                        readings.add(reading.copy(id = newId))
+                                        importedCount++
+                                    } else {
+                                        duplicateCount++
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            errorCount++
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        showImportResultDialog(importedCount, duplicateCount, errorCount)
+                        if (importedCount > 0) {
+                            updateDisplay()
+                            if (isMonthlyViewVisible) {
+                                updateMonthlyDisplay()
+                            }
+                            populateHorizontalDates()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Import failed: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun showImportResultDialog(imported: Int, duplicates: Int, errors: Int) {
+        val message = """
+        📥 Import Complete!
+        
+        📊 Import Summary:
+        • ✅ Successfully imported: $imported readings
+        • 🔄 Duplicates skipped: $duplicates readings
+        • ❌ Errors encountered: $errors lines
+        
+        ${if (imported > 0) "Your data has been updated! Check your monthly view to see the new readings." else "No new data was imported."}
+    """.trimIndent()
+
+        AlertDialog.Builder(this)
+            .setTitle(if (imported > 0) "✅ Import Successful" else "⚠️ Import Results")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    // Helper methods
+    private fun getDayOfWeek(dbDate: String): String {
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val date = format.parse(dbDate)
+            SimpleDateFormat("EEEE", Locale.getDefault()).format(date!!)
+        } catch (e: Exception) {
+            "Unknown"
+        }
+    }
+
+    private fun getDateRange(): String {
+        return if (readings.isNotEmpty()) {
+            val sortedReadings = readings.sortedBy { it.date }
+            val firstDate = dbDateToDisplayDate(sortedReadings.first().date)
+            val lastDate = dbDateToDisplayDate(sortedReadings.last().date)
+            "$firstDate to $lastDate"
+        } else {
+            "No data"
+        }
+    }
+
+    private fun isValidTimeSlot(timeSlot: String): Boolean {
+        return timeSlot in listOf("Fasting", "Morning", "Afternoon", "Evening")
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -860,6 +1104,7 @@ class MainActivity : AppCompatActivity() {
         val options = arrayOf(
             "📊 View Statistics",
             "📤 Export to CSV",
+            "📥 Import from CSV",
             "🗑️ Clear All Data"
         )
 
@@ -868,8 +1113,9 @@ class MainActivity : AppCompatActivity() {
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> showStatisticsDialog()
-                    1 -> Toast.makeText(this, "CSV Export coming soon!", Toast.LENGTH_SHORT).show()
-                    2 -> showClearDataConfirmation()
+                    1 -> showExportDialog()
+                    2 -> showImportDialog()
+                    3 -> showClearDataConfirmation()
                 }
             }
             .show()
