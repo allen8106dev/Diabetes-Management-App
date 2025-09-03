@@ -277,29 +277,61 @@ class MainActivity : AppCompatActivity() {
 
     // CSV Import functionality
     private fun showImportDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("📥 Import Glucose Data")
-            .setMessage("""
-            Import glucose readings from a CSV file.
-            
-            ⚠️ Important:
-            • This will ADD to your existing data (no duplicates)
-            • CSV format: Date,Time Slot,Glucose Level,Timestamp,Day
-            • Date format: DD-MM-YYYY
-            • Time slots: Fasting, Morning, Afternoon, Evening
-            
-            Continue with import?
-        """.trimIndent())
-            .setPositiveButton("Select File") { _, _ ->
-                importLauncher.launch(arrayOf("text/csv", "text/comma-separated-values"))
+        lifecycleScope.launch {
+            val existingReadings = dao.getTotalReadingsCount()
+
+            withContext(Dispatchers.Main) {
+                if (existingReadings > 0) {
+                    // Show warning about data replacement
+                    AlertDialog.Builder(this@MainActivity)
+                        .setTitle("⚠️ Import Will Replace All Data")
+                        .setMessage("""
+                        You currently have $existingReadings glucose readings.
+                        
+                        ⚠️ WARNING: Importing will PERMANENTLY DELETE all existing data and replace it with data from the CSV file.
+                        
+                        • CSV format: Date,Time Slot,Glucose Level,Day
+                        • Date format: DD-MM-YYYY  
+                        • Time slots: Fasting, Morning, Afternoon, Evening
+                        
+                        This action cannot be undone!
+                        
+                        Continue with import?
+                    """.trimIndent())
+                        .setPositiveButton("YES, REPLACE ALL") { _, _ ->
+                            importLauncher.launch(arrayOf("text/csv", "text/comma-separated-values"))
+                        }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                } else {
+                    // No existing data - proceed directly
+                    AlertDialog.Builder(this@MainActivity)
+                        .setTitle("📥 Import Glucose Data")
+                        .setMessage("""
+                        Import glucose readings from a CSV file.
+                        
+                        • CSV format: Date,Time Slot,Glucose Level,Day
+                        • Date format: DD-MM-YYYY
+                        • Time slots: Fasting, Morning, Afternoon, Evening
+                        
+                        Continue with import?
+                    """.trimIndent())
+                        .setPositiveButton("Select File") { _, _ ->
+                            importLauncher.launch(arrayOf("text/csv", "text/comma-separated-values"))
+                        }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                }
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
     }
 
     private fun importFromCSV(uri: Uri) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // CLEAR ALL EXISTING DATA FIRST
+                clearAllGlucoseData()
+
                 contentResolver.openInputStream(uri)?.use { inputStream ->
                     val reader = BufferedReader(InputStreamReader(inputStream))
                     val lines = reader.readLines()
@@ -319,7 +351,7 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     var importedCount = 0
-                    var duplicateCount = 0
+                    var duplicateCount = 0 // This will be 0 since we cleared everything
                     var errorCount = 0
 
                     dataLines.forEach { line ->
@@ -334,25 +366,19 @@ class MainActivity : AppCompatActivity() {
                                 if (isValidTimeSlot(timeSlot) && glucoseLevel in 20f..600f) {
                                     val dbDate = displayDateToDbDate(date)
 
-                                    // Check for duplicates
-                                    val exists = readings.any {
-                                        it.date == dbDate && it.timeSlot == timeSlot
-                                    }
+                                    // No need to check duplicates since we cleared everything
+                                    val reading = GlucoseReading(
+                                        date = dbDate,
+                                        timeSlot = timeSlot,
+                                        glucoseLevel = glucoseLevel,
+                                        timestamp = System.currentTimeMillis()
+                                    )
 
-                                    if (!exists) {
-                                        val reading = GlucoseReading(
-                                            date = dbDate,
-                                            timeSlot = timeSlot,
-                                            glucoseLevel = glucoseLevel,
-                                            timestamp = System.currentTimeMillis()
-                                        )
-
-                                        val newId = dao.insertReading(reading.toEntity())
-                                        readings.add(reading.copy(id = newId))
-                                        importedCount++
-                                    } else {
-                                        duplicateCount++
-                                    }
+                                    val newId = dao.insertReading(reading.toEntity())
+                                    readings.add(reading.copy(id = newId))
+                                    importedCount++
+                                } else {
+                                    errorCount++
                                 }
                             }
                         } catch (e: Exception) {
@@ -379,16 +405,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private suspend fun clearAllGlucoseData() {
+        dao.deleteAllReadings()
+        readings.clear()
+        withContext(Dispatchers.Main) {
+            updateDisplay()
+            if (isMonthlyViewVisible) {
+                updateMonthlyDisplay()
+            }
+            populateHorizontalDates() // Refresh date picker colors
+        }
+    }
+
+
     private fun showImportResultDialog(imported: Int, duplicates: Int, errors: Int) {
         val message = """
-        📥 Import Complete!
+        📥 Data Replacement Complete!
         
         📊 Import Summary:
         • ✅ Successfully imported: $imported readings
-        • 🔄 Duplicates skipped: $duplicates readings
         • ❌ Errors encountered: $errors lines
         
-        ${if (imported > 0) "Your data has been updated! Check your monthly view to see the new readings." else "No new data was imported."}
+        ${if (imported > 0) "All previous data has been replaced with new readings from your CSV file!" else "No data was imported due to errors."}
     """.trimIndent()
 
         AlertDialog.Builder(this)
@@ -397,6 +435,7 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("OK", null)
             .show()
     }
+
 
     // Helper methods
     private fun getDayOfWeek(dbDate: String): String {
