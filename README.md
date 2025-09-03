@@ -1,0 +1,1 @@
+A Sugar Tracking App that can store Fasting, Morning, Afternoon and Everning sugar readings with color coding (red = too high or low, orange = risky, green = normal). You can also view statistics. Future updates like storing values as csv, and transfering a user built csv file to the app in the making.
